@@ -19,19 +19,28 @@ private:
 		int materialId;
 		int vertexCount;
 		GLuint m_texture;
+		GLuint m_normaltex;
 	} Shape;
+
+	int index_count;
 
 	Shape m_shape;
 	Shader *m_shader;
 	GLuint um4mv_id;
 	GLuint um4p_id;
 	GLuint tex_id;
+	GLuint normal_tex_id;
 	GLuint shadow_mat_id;
 	GLuint shadow_tex_id;
+
+	GLuint render_type_id;
+	GLuint nm_mapping_id;
 
 	int type;
 	// 0 for rendering plane,
 	// 1 for rendering house
+public:
+	bool enable_normal_mapping;
 public:
 	glm::mat4 um4m;
 	glm::mat4 um4v;
