@@ -36,7 +36,9 @@ double cursorPos[2];
 SceneRenderer *m_renderer = nullptr;
 
 glm::vec3 m_lookAtCenter;
+glm::vec3 m_lookAtCenter_t;
 glm::vec3 m_eye;
+glm::vec3 m_eye_t;
 
 void vsyncEnabled(GLFWwindow *window);
 void vsyncDisabled(GLFWwindow *window);
@@ -54,6 +56,8 @@ glm::mat4 m_airplaneRotMat;
 
 Object *house1 = nullptr;
 Object *house2 = nullptr;
+
+bool nm_mapping_enable = false;
 
 glm::vec3 house1_position = glm::vec3(631, 130, 468);
 glm::vec3 house2_position = glm::vec3(656, 135, 483);
@@ -78,6 +82,8 @@ glm::vec3 light_position = glm::vec3(0.2, 0.6, 0.5);
 // glm::vec3 light_position = glm::vec3(512.0, 500.0, 555.0);
 
 Shader *depthShader = nullptr;
+
+int render_option = 0;
 
 int main(){
 	glfwInit();
@@ -206,7 +212,7 @@ void initializeGL(){
 	house2->initialize();
 
 	// m_eye = glm::vec3(512.0, 50.0, 450.0);
-	m_eye = glm::vec3(512.0, 10.0, 512.0);
+	m_eye = glm::vec3(512.0, 15.0, 512.0);
 	// m_eye = glm::vec3(512.0, 450.0, 512.0);
 	m_lookAtCenter = glm::vec3(512.0, 0.0, 500.0);
 	
@@ -233,8 +239,22 @@ void updateState(){
 	// m_eye = ... ;
 	// m_lookAtCenter = ... ;
 
-	m_lookAtCenter = m_lookAtCenter - plane_direction;
-	m_eye = m_eye - plane_direction;
+	// m_lookAtCenter = m_lookAtCenter - plane_direction;
+	// m_eye = m_eye - plane_direction;
+	if(render_option == 0) {
+		m_lookAtCenter = m_lookAtCenter - plane_direction;
+		m_eye = m_eye - plane_direction;
+	}
+
+	/* Testing Normal Mapping */
+	if(render_option == 1) {
+		m_lookAtCenter_t = m_lookAtCenter_t - plane_direction;
+		m_eye_t = m_eye_t - plane_direction;
+
+		m_lookAtCenter = house1_position;
+		m_eye = house1_position + glm::vec3(35.0, 40.0, 35.0);
+	}
+
 	
 	// adjust camera position with terrain
 	adjustCameraPositionWithTerrain();	
@@ -299,9 +319,16 @@ void paintGL(){
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
+	house1->enable_normal_mapping = nm_mapping_enable;
+	house2->enable_normal_mapping = nm_mapping_enable;
+
 	m_renderer->renderPass(shadowBuffer.depthMap, shadow_sbpv_matrix);
-	plane->shadow_matrix = shadow_sbpv_matrix * plane->um4m;
-	plane->renderPass(shadowBuffer.depthMap);
+	/* Testing Normal Mapping */
+
+	if(render_option == 0) {
+		plane->shadow_matrix = shadow_sbpv_matrix * plane->um4m;
+		plane->renderPass(shadowBuffer.depthMap);
+	}
 	house1->shadow_matrix = shadow_sbpv_matrix * house1->um4m;
 	house1->renderPass(shadowBuffer.depthMap);
 	house2->shadow_matrix = shadow_sbpv_matrix * house2->um4m;
@@ -324,6 +351,19 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 	} else if(key == 'E' || key == 'e') {
 		glm::mat4 m = glm::rotate(glm::mat4(1.0f), -0.005f, glm::vec3(0.0f, 1.0f, 0.0f));
 		plane_direction = glm::normalize(glm::vec3(m * glm::vec4(plane_direction, 1.0f)));
+	} else if((key == 'Z' || key == 'z') && action == GLFW_PRESS)
+		nm_mapping_enable = !nm_mapping_enable;
+	else if ((key == 'C' || key == 'c') && action == GLFW_PRESS) {
+		if (render_option == 0) {
+			m_lookAtCenter_t = m_lookAtCenter;
+			m_eye_t = m_eye;
+		} else if(render_option == 1) {
+			m_lookAtCenter = m_lookAtCenter_t;
+			m_eye = m_eye_t;
+		}
+
+
+		render_option = (render_option + 1) % 2;
 	}
 
 }
