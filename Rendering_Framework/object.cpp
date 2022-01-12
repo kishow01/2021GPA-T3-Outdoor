@@ -5,6 +5,7 @@
 
 #include "stb_image.h"
 
+// define a simple data structure for storing texture image raw data
 typedef struct _texture_data
 {
 	_texture_data() : width(0), height(0), data(0) {}
@@ -13,13 +14,16 @@ typedef struct _texture_data
 	unsigned char* data;
 } texture_data;
 
+// load a png image and return a TextureData structure with raw data
+// not limited to png format. works with any image format that is RGBA-32bit
 texture_data loadImg(const char* path)
 {
 	texture_data texture;
 	int n;
 	stbi_set_flip_vertically_on_load(true);
 	stbi_uc *data = stbi_load(path, &texture.width, &texture.height, &n, 4);
-	if (data != NULL) {
+	if (data != NULL)
+	{
 		texture.data = new unsigned char[texture.width * texture.height * 4 * sizeof(unsigned char)];
 		memcpy(texture.data, data, texture.width * texture.height * 4 * sizeof(unsigned char));
 		stbi_image_free(data);
@@ -33,7 +37,7 @@ Object::Object(int t) {
 
 Object::~Object() { }
 
-void Object::loadModule() {
+void Object::loadModule(PlantManager *m_plantManager) {
 	tinyobj::attrib_t attrib;
 	vector<tinyobj::shape_t> shapes;
 	vector<tinyobj::material_t> materials;
@@ -45,6 +49,19 @@ void Object::loadModule() {
 		ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, "models\\airplane.obj", "models");
 	else if(type == 1)
 		ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, "models\\medievalHouse.obj", "models");
+	else if(type == 2)
+		ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, "models\\trees\\baum_hd_pine_trunk.obj", "models\\trees");
+	else if(type == 3)
+		ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, "models\\trees\\baum_hd_trunk.obj", "models\\trees");
+	else if(type == 4)
+		ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, "models\\trees\\grass.obj", "models\\trees");
+	else if(type == 5)
+		ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, "models\\trees\\grass2.obj", "models\\trees");
+	// type == 6 2's leaf
+	else if(type == 6)
+		ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, "models\\trees\\baum_hd_pine_leaves.obj", "models\\trees");
+	else if(type == 7)
+		ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, "models\\trees\\baum_hd_leaves.obj", "models\\trees");
 
 	if (!warn.empty()) {
 		cout << warn << endl;
@@ -59,7 +76,11 @@ void Object::loadModule() {
 	vector<float> vertices, texcoords, normals;  // if OBJ preserves vertex order, you can use element array buffer for memory efficiency
 	std::vector<unsigned int> indices;
 
-	for (int s = 0; s < shapes.size(); ++s) {    // for 'ladybug.obj', there is only one object
+	cout << "Type: " << type << " loading ... " << endl;
+
+	// 大多數的 shapes.size() = 1
+	// for (int s = 0; s < shapes.size(); ++s) {    // for 'ladybug.obj', there is only one object
+	for (int s = 0; s < 1; ++s) {    // for 'ladybug.obj', there is only one object
 		int index_offset = 0;
 		for (int f = 0; f < shapes[s].mesh.num_face_vertices.size(); ++f) {
 			int fv = shapes[s].mesh.num_face_vertices[f];
@@ -87,15 +108,11 @@ void Object::loadModule() {
 	glGenBuffers(1, &m_shape.vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, m_shape.vbo);
 
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float) + texcoords.size() * sizeof(float) + normals.size() * sizeof(float), NULL, GL_STATIC_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(float), vertices.data());
-	glBufferSubData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), texcoords.size() * sizeof(float), texcoords.data());
-	glBufferSubData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float) + texcoords.size() * sizeof(float), normals.size() * sizeof(float), normals.data());
-
 	GLuint position_buffer;
 	GLuint normal_buffer;
 	GLuint tangent_buffer;
 	GLuint texcoord_buffer;
+	GLuint instance_position_buffer;
 	GLuint index_buffer;
 
 	glGenBuffers(1, &position_buffer);
@@ -172,29 +189,73 @@ void Object::loadModule() {
 	glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(3);
 
+	/* init instance_position buffer */
+	if (type == 2 || type == 6) {
+		m_numPlantInstance = m_plantManager->m_numPlantInstance[0];
+		// instance_position_buffer
+		glGenBuffers(1, &instance_position_buffer);
+		glBindBuffer(GL_ARRAY_BUFFER, instance_position_buffer);
+		glBufferData(GL_ARRAY_BUFFER, m_plantManager->m_numPlantInstance[0] * 3 * sizeof(float), m_plantManager->m_plantInstancePositions[0], GL_STATIC_DRAW);
+		glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 0, 0);
+		glEnableVertexAttribArray(4);
+
+		glVertexAttribDivisor(4, 1);
+	} else if (type == 3 || type == 7) {
+		m_numPlantInstance = m_plantManager->m_numPlantInstance[1];
+		// instance_position_buffer
+		glGenBuffers(1, &instance_position_buffer);
+		glBindBuffer(GL_ARRAY_BUFFER, instance_position_buffer);
+		glBufferData(GL_ARRAY_BUFFER, m_plantManager->m_numPlantInstance[1] * 3 * sizeof(float), m_plantManager->m_plantInstancePositions[1], GL_STATIC_DRAW);
+		glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 0, 0);
+		glEnableVertexAttribArray(4);
+
+		glVertexAttribDivisor(4, 1);
+	} else if (type == 4) {
+		m_numPlantInstance = m_plantManager->m_numPlantInstance[2];
+		// instance_position_buffer
+		glGenBuffers(1, &instance_position_buffer);
+		glBindBuffer(GL_ARRAY_BUFFER, instance_position_buffer);
+		glBufferData(GL_ARRAY_BUFFER, m_plantManager->m_numPlantInstance[2] * 3 * sizeof(float), m_plantManager->m_plantInstancePositions[2], GL_STATIC_DRAW);
+		glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 0, 0);
+		glEnableVertexAttribArray(4);
+
+		glVertexAttribDivisor(4, 1);
+	} else if(type == 5) {
+		m_numPlantInstance = m_plantManager->m_numPlantInstance[3];
+		// instance_position_buffer
+		glGenBuffers(1, &instance_position_buffer);
+		glBindBuffer(GL_ARRAY_BUFFER, instance_position_buffer);
+		glBufferData(GL_ARRAY_BUFFER, m_plantManager->m_numPlantInstance[3] * 3 * sizeof(float), m_plantManager->m_plantInstancePositions[3], GL_STATIC_DRAW);
+		glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 0, 0);
+		glEnableVertexAttribArray(4);
+
+		glVertexAttribDivisor(4, 1);
+	}
+
 	glGenBuffers(1, &index_buffer);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
 	index_count = indices.size();
 
-	shapes.clear();
-	shapes.shrink_to_fit();
-	materials.clear();
-	materials.shrink_to_fit();
-	vertices.clear();
-	vertices.shrink_to_fit();
-	texcoords.clear();
-	texcoords.shrink_to_fit();
-	normals.clear();
-	normals.shrink_to_fit();
-
-	cout << "Load " << m_shape.vertexCount << " vertices" << endl;
+	cout << "Type: " << type << ", Load " << m_shape.vertexCount << " vertices" << endl;
 
 	texture_data tdata;
 	if (type == 0)
 		tdata = loadImg("models\\textures\\Airplane_smooth_DefaultMaterial_BaseMap.png");
 	else if (type == 1)
 		tdata = loadImg("models\\textures\\Medieval_house_Diffuse.png");
+	else if (type == 2)
+		tdata = loadImg("models\\trees\\textures\\bark_pine_wh.png");
+	else if (type == 3)
+		tdata = loadImg("models\\trees\\textures\\bark_wh.png");
+	else if (type == 4)
+		tdata = loadImg("models\\trees\\textures\\GrassE_mt1_D.jpg");
+	else if (type == 5)
+		tdata = loadImg("models\\trees\\textures\\grass2_1.png");
+	else if (type == 6)
+		tdata = loadImg("models\\trees\\textures\\ast5.png");
+	else if (type == 7)
+		tdata = loadImg("models\\trees\\textures\\ast3.png");
 
 	glGenTextures(1, &m_shape.m_texture);
 	glBindTexture(GL_TEXTURE_2D, m_shape.m_texture);
@@ -221,10 +282,99 @@ void Object::loadModule() {
 
 		delete tdata.data;
 	}
+
+	if(type == 5) {
+		vertices.clear();
+		texcoords.clear();
+		normals.clear();
+		// LOADING SHAPE 2 
+
+		for (int s = 1; s < 2; ++s) {    // for 'ladybug.obj', there is only one object
+			int index_offset = 0;
+			for (int f = 0; f < shapes[s].mesh.num_face_vertices.size(); ++f) {
+				int fv = shapes[s].mesh.num_face_vertices[f];
+				for (int v = 0; v < fv; ++v) {
+					tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
+					vertices.push_back(attrib.vertices[3 * idx.vertex_index + 0]);
+					vertices.push_back(attrib.vertices[3 * idx.vertex_index + 1]);
+					vertices.push_back(attrib.vertices[3 * idx.vertex_index + 2]);
+					texcoords.push_back(attrib.texcoords[2 * idx.texcoord_index + 0]);
+					texcoords.push_back(attrib.texcoords[2 * idx.texcoord_index + 1]);
+					normals.push_back(attrib.normals[3 * idx.normal_index + 0]);
+					normals.push_back(attrib.normals[3 * idx.normal_index + 1]);
+					normals.push_back(attrib.normals[3 * idx.normal_index + 2]);
+
+					indices.push_back(index_offset + v);
+				}
+				index_offset += fv;
+				m_shape2.vertexCount += fv;
+			}
+		}
+
+		glGenVertexArrays(1, &m_shape2.vao);
+		glBindVertexArray(m_shape2.vao);
+
+		glGenBuffers(1, &m_shape2.vbo);
+		glBindBuffer(GL_ARRAY_BUFFER, m_shape2.vbo);
+
+		GLuint position_buffer;
+		GLuint normal_buffer;
+		GLuint texcoord_buffer;
+		GLuint instance_position_buffer;
+		GLuint index_buffer;
+	
+		glGenBuffers(1, &position_buffer);
+		glBindBuffer(GL_ARRAY_BUFFER, position_buffer);
+		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+		glEnableVertexAttribArray(0);
+
+		glGenBuffers(1, &normal_buffer);
+		glBindBuffer(GL_ARRAY_BUFFER, normal_buffer);
+		glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(float), normals.data(), GL_STATIC_DRAW);
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+		glEnableVertexAttribArray(1);
+
+		glGenBuffers(1, &texcoord_buffer);
+		glBindBuffer(GL_ARRAY_BUFFER, texcoord_buffer);
+		glBufferData(GL_ARRAY_BUFFER, texcoords.size() * sizeof(float), texcoords.data(), GL_STATIC_DRAW);
+		glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 0, 0);
+		glEnableVertexAttribArray(3);
+
+		m_numPlantInstance = m_plantManager->m_numPlantInstance[3];
+		// instance_position_buffer
+		glGenBuffers(1, &instance_position_buffer);
+		glBindBuffer(GL_ARRAY_BUFFER, instance_position_buffer);
+		glBufferData(GL_ARRAY_BUFFER, m_plantManager->m_numPlantInstance[3] * 3 * sizeof(float), m_plantManager->m_plantInstancePositions[3], GL_STATIC_DRAW);
+		glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 0, 0);
+		glEnableVertexAttribArray(4);
+
+		glVertexAttribDivisor(4, 1);
+
+		glGenBuffers(1, &index_buffer);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+		index_count = indices.size();
+
+		tdata = loadImg("models\\trees\\textures\\grass2_2.png");
+
+		glGenTextures(1, &m_shape2.m_texture);
+		glBindTexture(GL_TEXTURE_2D, m_shape2.m_texture);
+
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, tdata.width, tdata.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, tdata.data);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		delete tdata.data;
+	}
+
+	cout << "Type: " << type << " loading finish" << endl;
 }
 
-void Object::initialize() {
-	loadModule();
+void Object::initialize(PlantManager *m_plantManager) {
+	loadModule(m_plantManager);
 
 	// Set up Shader for plane
 	this->m_shader = new Shader("src\\shader\\object.vs.glsl", "src\\shader\\object.fs.glsl");
@@ -265,9 +415,20 @@ void Object::renderPass(GLuint depthMap) {
 	glBindTexture(GL_TEXTURE_2D, depthMap);
 	glUniform1i(shadow_tex_id, 5);
 
+	if (type == 2 || type == 3 || type == 4 || type == 5 || type == 6 ||type == 7)
+		glDrawElementsInstanced(GL_TRIANGLES, m_shape.vertexCount, GL_UNSIGNED_INT, 0, m_numPlantInstance);
+	else
+		glDrawElements(GL_TRIANGLES, m_shape.vertexCount, GL_UNSIGNED_INT, 0);
 
+	if(type == 5) {
+		glBindVertexArray(m_shape2.vao);
 
-	glDrawArrays(GL_TRIANGLES, 0, m_shape.vertexCount);
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, m_shape2.m_texture);
+		glUniform1i(tex_id, 3);
+	
+		glDrawElementsInstanced(GL_TRIANGLES, m_shape2.vertexCount, GL_UNSIGNED_INT, 0, m_numPlantInstance);
+	}
 
 	this->m_shader->disableShader();
 }
@@ -275,5 +436,9 @@ void Object::renderPass(GLuint depthMap) {
 void Object::renderLight(GLuint mvp_id, glm::mat4 light_vp_matrix) {
 	glBindVertexArray(m_shape.vao);
 	glUniformMatrix4fv(mvp_id, 1, GL_FALSE, value_ptr(light_vp_matrix * um4m));
-	glDrawArrays(GL_TRIANGLES, 0, m_shape.vertexCount);
+
+	if (type == 2 || type == 3 || type == 4 || type == 5 || type == 6 || type == 7)
+		glDrawElementsInstanced(GL_TRIANGLES, m_shape.vertexCount, GL_UNSIGNED_INT, 0, m_numPlantInstance);
+	else 
+		glDrawElements(GL_TRIANGLES, m_shape.vertexCount, GL_UNSIGNED_INT, 0);
 }
