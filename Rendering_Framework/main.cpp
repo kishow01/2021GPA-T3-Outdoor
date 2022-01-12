@@ -48,7 +48,7 @@ Terrain *m_terrain = nullptr;
 
 Object *plane = nullptr;
 
-glm::vec3 plane_direction = glm::vec3(0.0f, 0.0f, 1.0f);
+glm::vec3 plane_direction = glm::vec3(0.0f, 0.0f, -1.0f);
 
 // the airplane's transformation has been handled
 glm::vec3 m_airplanePosition;
@@ -65,6 +65,13 @@ glm::vec3 house2_position = glm::vec3(656, 135, 483);
 float house1_rotation_angle = glm::radians(60.0f);
 float house2_rotation_angle = glm::radians(15.0f);
 
+Object *grass0 = nullptr;
+Object *grass1 = nullptr;
+Object *tree0_trunk = nullptr;
+Object *tree0_leaves = nullptr;
+Object *tree1_trunk = nullptr;
+Object *tree1_leaves = nullptr;
+
 // Directional light shadow
 struct {
 	GLuint fbo;
@@ -73,7 +80,8 @@ struct {
 
 struct {
 	struct {
-		GLint   mvp;
+		GLuint   mvp;
+		GLuint   type; 
 	} light;
 } uniforms;
 
@@ -180,6 +188,7 @@ void vsyncEnabled(GLFWwindow *window){
 void initializeGL(){
 	depthShader = new Shader("src\\shader\\shadow.vs.glsl", "src\\shader\\shadow.fs.glsl");
 	uniforms.light.mvp = glGetUniformLocation(depthShader->getProgramID(), "mvp");
+	uniforms.light.type = glGetUniformLocation(depthShader->getProgramID(), "render_type");
 
 	// Set Up Depth FBO
 	glGenFramebuffers(1, &shadowBuffer.fbo);
@@ -189,8 +198,8 @@ void initializeGL(){
 	glBindTexture(GL_TEXTURE_2D, shadowBuffer.depthMap);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
@@ -202,26 +211,51 @@ void initializeGL(){
 	m_renderer = new SceneRenderer();
 	m_renderer->initialize(FRAME_WIDTH, FRAME_HEIGHT, depthShader->getProgramID());
 
-	plane = new Object(0);
-	plane->initialize();
-
-	house1 = new Object(1);
-	house1->initialize();
-
-	house2 = new Object(1);
-	house2->initialize();
-
 	// m_eye = glm::vec3(512.0, 50.0, 450.0);
-	m_eye = glm::vec3(512.0, 15.0, 512.0);
+	m_eye = glm::vec3(512.0, 220.0, 450);
 	// m_eye = glm::vec3(512.0, 450.0, 512.0);
-	m_lookAtCenter = glm::vec3(512.0, 0.0, 500.0);
+	m_lookAtCenter = glm::vec3(512.0, 185.0, 500.0);
 	
 	initScene();
+
+	plane = new Object(0);
+	plane->initialize(m_plantManager);
+
+	house1 = new Object(1);
+	house1->initialize(m_plantManager);
+
+	house2 = new Object(1);
+	house2->initialize(m_plantManager);
+
+	// plant & grass init ...
+	tree0_trunk = new Object(2);
+	tree0_trunk->initialize(m_plantManager);
+
+	tree0_leaves = new Object(6);
+	tree0_leaves->initialize(m_plantManager);
+
+	tree1_trunk = new Object(3);
+	tree1_trunk->initialize(m_plantManager);
+
+	tree1_leaves = new Object(7);
+	tree1_leaves->initialize(m_plantManager);
+
+	grass0 = new Object(4);
+	grass0->initialize(m_plantManager);
+
+	grass1 = new Object(5);
+	grass1->initialize(m_plantManager);
 
 	m_renderer->setProjection(glm::perspective(glm::radians(60.0f), FRAME_WIDTH * 1.0f / FRAME_HEIGHT, 0.1f, 1000.0f));
 	plane->um4p = glm::perspective(glm::radians(60.0f), FRAME_WIDTH * 1.0f / FRAME_HEIGHT, 0.1f, 1000.0f);
 	house1->um4p = glm::perspective(glm::radians(60.0f), FRAME_WIDTH * 1.0f / FRAME_HEIGHT, 0.1f, 1000.0f);
 	house2->um4p = glm::perspective(glm::radians(60.0f), FRAME_WIDTH * 1.0f / FRAME_HEIGHT, 0.1f, 1000.0f);
+	tree0_trunk->um4p = glm::perspective(glm::radians(60.0f), FRAME_WIDTH * 1.0f / FRAME_HEIGHT, 0.1f, 1000.0f);
+	tree0_leaves->um4p = glm::perspective(glm::radians(60.0f), FRAME_WIDTH * 1.0f / FRAME_HEIGHT, 0.1f, 1000.0f);
+	tree1_trunk->um4p = glm::perspective(glm::radians(60.0f), FRAME_WIDTH * 1.0f / FRAME_HEIGHT, 0.1f, 1000.0f);
+	tree1_leaves->um4p = glm::perspective(glm::radians(60.0f), FRAME_WIDTH * 1.0f / FRAME_HEIGHT, 0.1f, 1000.0f);
+	grass0->um4p = glm::perspective(glm::radians(60.0f), FRAME_WIDTH * 1.0f / FRAME_HEIGHT, 0.1f, 1000.0f);
+	grass1->um4p = glm::perspective(glm::radians(60.0f), FRAME_WIDTH * 1.0f / FRAME_HEIGHT, 0.1f, 1000.0f);
 }
 void resizeGL(GLFWwindow *window, int w, int h){
 	FRAME_WIDTH = w;
@@ -231,6 +265,12 @@ void resizeGL(GLFWwindow *window, int w, int h){
 	plane->um4p = glm::perspective(glm::radians(60.0f), FRAME_WIDTH * 1.0f / FRAME_HEIGHT, 0.1f, 1000.0f);
 	house1->um4p = glm::perspective(glm::radians(60.0f), FRAME_WIDTH * 1.0f / FRAME_HEIGHT, 0.1f, 1000.0f);
 	house2->um4p = glm::perspective(glm::radians(60.0f), FRAME_WIDTH * 1.0f / FRAME_HEIGHT, 0.1f, 1000.0f);
+	tree0_trunk->um4p = glm::perspective(glm::radians(60.0f), FRAME_WIDTH * 1.0f / FRAME_HEIGHT, 0.1f, 1000.0f);
+	tree0_leaves->um4p = glm::perspective(glm::radians(60.0f), FRAME_WIDTH * 1.0f / FRAME_HEIGHT, 0.1f, 1000.0f);
+	tree1_trunk->um4p = glm::perspective(glm::radians(60.0f), FRAME_WIDTH * 1.0f / FRAME_HEIGHT, 0.1f, 1000.0f);
+	tree1_leaves->um4p = glm::perspective(glm::radians(60.0f), FRAME_WIDTH * 1.0f / FRAME_HEIGHT, 0.1f, 1000.0f);
+	grass0->um4p = glm::perspective(glm::radians(60.0f), FRAME_WIDTH * 1.0f / FRAME_HEIGHT, 0.1f, 1000.0f);
+	grass1->um4p = glm::perspective(glm::radians(60.0f), FRAME_WIDTH * 1.0f / FRAME_HEIGHT, 0.1f, 1000.0f);
 }
 
 
@@ -267,6 +307,12 @@ void updateState(){
 	plane->um4v = vm;
 	house1->um4v = vm;
 	house2->um4v = vm;
+	tree0_trunk->um4v = vm;
+	tree0_leaves->um4v = vm;
+	tree1_trunk->um4v = vm;
+	tree1_leaves->um4v = vm;
+	grass0->um4v = vm;
+	grass1->um4v = vm;
 
 	// update airplane
 	updateAirplane(vm);	
@@ -279,7 +325,7 @@ void paintGL(){
 	glClearBufferfv(GL_COLOR, 0, black);
 	glClearBufferfv(GL_DEPTH, 0, ones);
 
-	const float shadow_range = 15.0f;
+	const float shadow_range = 30.0f;
 	glm::mat4 light_proj_matrix = glm::ortho(-shadow_range, shadow_range, -shadow_range, shadow_range, 0.0f, 5000.0f);
 	glm::mat4 light_view_matrix = glm::lookAt(light_position, m_lookAtCenter, glm::vec3(0.0f, 1.0f, 0.0f));
 	glm::mat4 light_vp_matrix = light_proj_matrix * light_view_matrix;
@@ -292,23 +338,46 @@ void paintGL(){
 	house1->um4m = glm::translate(glm::mat4(1.0f), house1_position);
 	house2->um4m = glm::translate(glm::mat4(1.0f), house2_position);
 
+	// tree0_trunk->um4m = glm::rotate(glm::mat4(1.0f), -90.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+	// tree0_leaves->um4m = glm::rotate(glm::mat4(1.0f), -90.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+	tree0_trunk->um4m = glm::mat4(1.0f);
+	tree0_leaves->um4m = glm::mat4(1.0f);
+
+	tree1_trunk->um4m = glm::mat4(1.0f);
+	tree1_leaves->um4m = glm::mat4(1.0f);
+
+	grass0->um4m = glm::mat4(1.0f);
+	grass1->um4m = glm::mat4(1.0f);
+
 	///////////// Code: DrawCall #1 Rendering Depth Map From Light View /////////////
 	glEnable(GL_DEPTH_TEST);
-	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glBindFramebuffer(GL_FRAMEBUFFER, shadowBuffer.fbo);
 	depthShader->useShader();
 	glClear(GL_DEPTH_BUFFER_BIT);
 
 	glViewport(0, 0, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE);
-	//glViewport(0, 0, FRAME_WIDTH, FRAME_HEIGHT);
 
 	glEnable(GL_POLYGON_OFFSET_FILL);
 	glPolygonOffset(4.0f, 4.0f);
 
 	// m_renderer->renderLight(uniforms.light.mvp, light_vp_matrix);
+	glUniform1i(uniforms.light.type, 0);
 	plane->renderLight(uniforms.light.mvp, light_vp_matrix);
 	house1->renderLight(uniforms.light.mvp, light_vp_matrix);
 	house2->renderLight(uniforms.light.mvp, light_vp_matrix);
+
+	/* 樹的位置，於 depth shader 需要調整 */
+	/*
+	glUniform1i(uniforms.light.type, 1);
+	tree0_trunk->renderLight(uniforms.light.mvp, light_vp_matrix);
+	tree0_leaves->renderLight(uniforms.light.mvp, light_vp_matrix);
+	tree1_trunk->renderLight(uniforms.light.mvp, light_vp_matrix);
+	tree1_leaves->renderLight(uniforms.light.mvp, light_vp_matrix);
+	*/
+
+	/* 植物應該不需要畫陰影 */
+	// grass0->renderLight(uniforms.light.mvp, light_vp_matrix);
+	// grass1->renderLight(uniforms.light.mvp, light_vp_matrix);
 
 	depthShader->disableShader();
 	glDisable(GL_POLYGON_OFFSET_FILL);
@@ -333,8 +402,24 @@ void paintGL(){
 	house1->renderPass(shadowBuffer.depthMap);
 	house2->shadow_matrix = shadow_sbpv_matrix * house2->um4m;
 	house2->renderPass(shadowBuffer.depthMap);
-	
-	
+
+	tree0_trunk->shadow_matrix = shadow_sbpv_matrix * tree0_trunk->um4m;
+	tree0_trunk->renderPass(shadowBuffer.depthMap);
+
+	tree0_leaves->shadow_matrix = shadow_sbpv_matrix * tree0_leaves->um4m;
+	tree0_leaves->renderPass(shadowBuffer.depthMap);
+
+	tree1_trunk->shadow_matrix = shadow_sbpv_matrix * tree1_trunk->um4m;
+	tree1_trunk->renderPass(shadowBuffer.depthMap);
+
+	tree1_leaves->shadow_matrix = shadow_sbpv_matrix * tree1_leaves->um4m;
+	tree1_leaves->renderPass(shadowBuffer.depthMap);
+
+	/* 植物應該不需要畫陰影，可以忽略 shadow matrix 直接畫 */
+	// grass0->shadow_matrix = shadow_sbpv_matrix * grass0->um4m;
+	grass0->renderPass(shadowBuffer.depthMap);
+	// grass1->shadow_matrix = shadow_sbpv_matrix * grass1->um4m;
+	grass1->renderPass(shadowBuffer.depthMap);;
 }
 
 ////////////////////////////////////////////////
@@ -346,10 +431,17 @@ void cursorPosCallback(GLFWwindow* window, double x, double y){
 }
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods){
 	if(key == 'Q' || key == 'q') {
-		glm::mat4 m = glm::rotate(glm::mat4(1.0f), 0.005f, glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::mat4 m = glm::rotate(glm::mat4(1.0f), 0.5f, glm::vec3(0.0f, 1.0f, 0.0f));
 		plane_direction = glm::normalize(glm::vec3(m * glm::vec4(plane_direction, 1.0f)));
+		/* 
+		// Rotate m_eye around m_lookAtCenter
+		m = glm::translate(glm::mat4(1.0f), (m_lookAtCenter - m_eye));
+		m = glm::rotate(m, -0.5f, glm::vec3(0.0f, 1.0f, 0.0f));
+		m = glm::translate(m, -(m_lookAtCenter - m_eye));
+		m_eye = glm::vec3(m * glm::vec4(m_eye, 1.0));
+		*/
 	} else if(key == 'E' || key == 'e') {
-		glm::mat4 m = glm::rotate(glm::mat4(1.0f), -0.005f, glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::mat4 m = glm::rotate(glm::mat4(1.0f), -0.5f, glm::vec3(0.0f, 1.0f, 0.0f));
 		plane_direction = glm::normalize(glm::vec3(m * glm::vec4(plane_direction, 1.0f)));
 	} else if((key == 'Z' || key == 'z') && action == GLFW_PRESS)
 		nm_mapping_enable = !nm_mapping_enable;
@@ -365,8 +457,8 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 
 		render_option = (render_option + 1) % 2;
 	}
-
 }
+
 ////////////////////////////////////////////////
 // The following functions don't need to change
 void initScene() {

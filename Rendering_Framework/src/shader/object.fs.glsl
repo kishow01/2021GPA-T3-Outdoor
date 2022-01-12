@@ -87,6 +87,22 @@ void normal_mapping_render() {
 	}
 }
 
+void tree_rendering() {
+	float alpha = texture(tex, vertexData.texcoord).a;
+	if(alpha < 0.1)
+		discard;
+
+	color = texture(tex, vertexData.texcoord);
+}
+
+void grass_rendering() {
+	float alpha = texture(tex, vertexData.texcoord).a;
+	if(alpha < 0.1)
+		discard;
+
+	color = texture(tex, vertexData.texcoord);
+}
+
 void main() {
 	if(render_type == 0)
 		phong_shading_rendering();
@@ -95,5 +111,10 @@ void main() {
 			normal_mapping_render();
 		else
 			phong_shading_rendering();
-	} 
+	} else if (render_type == 2 || render_type == 3 || render_type == 6 || render_type == 7) {
+		tree_rendering();
+	} else if (render_type == 4 || render_type == 5) {
+		grass_rendering();
+		// phong_shading_rendering();
+	}
 }
