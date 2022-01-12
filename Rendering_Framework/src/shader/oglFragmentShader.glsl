@@ -34,7 +34,7 @@ void renderTerrain(){
 	float shadow_factor = textureProj(shadow_tex, shadow_coord);
 	if(shadow_factor < 0.5) {
 		// Render Shadow Color
-		fragColor0 = fragColor0 * vec4(0.41, 0.36, 0.37, 1.0);
+		fragColor0 = fragColor0 * shadow_factor;
 	}
 }
 

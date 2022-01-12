@@ -389,6 +389,10 @@ void Object::initialize(PlantManager *m_plantManager) {
 
 	render_type_id = glGetUniformLocation(programId, "render_type");
 	nm_mapping_id = glGetUniformLocation(programId, "normal_mapping_enable");
+
+	Ka_id = glGetUniformLocation(programId, "Ka");
+	Kd_id = glGetUniformLocation(programId, "Kd");
+	Ks_id = glGetUniformLocation(programId, "Ks");
 }
 
 void Object::renderPass(GLuint depthMap) {
@@ -400,6 +404,10 @@ void Object::renderPass(GLuint depthMap) {
 
 	glUniform1i(render_type_id, type);
 	glUniform1i(nm_mapping_id, enable_normal_mapping);
+
+	glUniform3fv(Ka_id, 1, value_ptr(ka));
+	glUniform3fv(Ks_id, 1, value_ptr(ks));
+	glUniform3fv(Kd_id, 1, value_ptr(kd));
 
 	glBindVertexArray(m_shape.vao);
 

@@ -93,30 +93,32 @@ void normal_mapping_render() {
 }
 
 void grass_rendering() {
-	gl_Position = um4p * um4mv * vec4(iv3vertex + iv3instance_vertex, 1.0);
-	vertexData.texcoord = iv2tex_coord;
-}
-
-void tree_rendering() {
-	mat4 rm = rotationMatrix(vec3(1.0f, 0.0f, 0.0f), -90.0f);
-	vec3 p = vec3(rm * vec4(iv3vertex, 1.0f));
-
-	gl_Position = um4p * um4mv * vec4(p + iv3instance_vertex, 1.0);
-	vertexData.texcoord = iv2tex_coord;
-
-	/*
 	vec4 P = um4mv * vec4(iv3vertex + iv3instance_vertex, 1.0);
 
 	vertexData.N = mat3(um4mv) * iv3normal;
 	vertexData.L = light_pos - P.xyz;
 	vertexData.V = -P.xyz;
 
-	// gl_Position = um4p * um4mv * vec4(iv3vertex, 1.0);
+	gl_Position = um4p * um4mv * vec4(iv3vertex + iv3instance_vertex, 1.0);
+	vertexData.texcoord = iv2tex_coord;
+	vertexData.iv3normal = iv3normal;
+}
+
+void tree_rendering() {
+	mat4 rm = rotationMatrix(vec3(1.0f, 0.0f, 0.0f), -90.0f);
+	vec3 p = vec3(rm * vec4(iv3vertex, 1.0f));
+
+	vec4 P = um4mv * vec4(p + iv3instance_vertex, 1.0);
+
+	vertexData.N = mat3(um4mv) * iv3normal;
+	vertexData.L = light_pos - P.xyz;
+	vertexData.V = -P.xyz;
+
+	gl_Position = um4p * um4mv * vec4(p + iv3instance_vertex, 1.0);
 	vertexData.iv3normal = iv3normal;
 	vertexData.texcoord = iv2tex_coord;
 
-	vertexData.shadow_coord = shadow_matrix * vec4(iv3vertex, 1.0);
-	*/
+	vertexData.shadow_coord = shadow_matrix * vec4(p + iv3instance_vertex, 1.0);
 }
 
 
