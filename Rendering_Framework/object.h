@@ -39,6 +39,10 @@ private:
 	GLuint render_type_id;
 	GLuint nm_mapping_id;
 
+	GLuint Ka_id;
+	GLuint Kd_id;
+	GLuint Ks_id;
+
 	int type;
 	// 0 for rendering plane,
 	// 1 for rendering house
@@ -53,6 +57,10 @@ public:
 	glm::mat4 um4v;
 	glm::mat4 um4p;
 	glm::mat4 shadow_matrix;
+
+	glm::vec3 ka;
+	glm::vec3 kd;
+	glm::vec3 ks;
 public:
 	Object(int t);
 	virtual ~Object();

@@ -62,8 +62,8 @@ bool nm_mapping_enable = false;
 glm::vec3 house1_position = glm::vec3(631, 130, 468);
 glm::vec3 house2_position = glm::vec3(656, 135, 483);
 
-float house1_rotation_angle = glm::radians(60.0f);
-float house2_rotation_angle = glm::radians(15.0f);
+float house1_rotation_angle = 60.0f;
+float house2_rotation_angle = 15.0f;
 
 Object *grass0 = nullptr;
 Object *grass1 = nullptr;
@@ -92,6 +92,40 @@ glm::vec3 light_position = glm::vec3(0.2, 0.6, 0.5);
 Shader *depthShader = nullptr;
 
 int render_option = 0;
+
+// Texture parameters
+glm::vec3 PLANE_KA = glm::vec3(1.000000, 1.000000, 1.000000);
+glm::vec3 PLANE_KD = glm::vec3(0.800000, 0.800000, 0.800000);
+glm::vec3 PLANE_KS = glm::vec3(0.500000, 0.500000, 0.500000);
+
+glm::vec3 HOUSE_KA = glm::vec3(1.000000, 1.000000, 1.000000);
+glm::vec3 HOUSE_KD = glm::vec3(0.800000, 0.800000, 0.800000);
+glm::vec3 HOUSE_KS = glm::vec3(0.500000, 0.500000, 0.500000);
+
+glm::vec3 TREE_0_TRUNK_KA = glm::vec3(1.000000, 1.000000, 1.000000);
+glm::vec3 TREE_0_TRUNK_KD = glm::vec3(0.640000, 0.640000, 0.640000);
+glm::vec3 TREE_0_TRUNK_KS = glm::vec3(0.500000, 0.500000, 0.500000);
+
+glm::vec3 TREE_1_TRUNK_KA = glm::vec3(1.000000, 1.000000, 1.000000);
+glm::vec3 TREE_1_TRUNK_KD = glm::vec3(0.640000, 0.640000, 0.640000);
+glm::vec3 TREE_1_TRUNK_KS = glm::vec3(0.500000, 0.500000, 0.500000);
+
+glm::vec3 TREE_0_LEAVES_KA = glm::vec3(1.000000, 1.000000, 1.000000);
+glm::vec3 TREE_0_LEAVES_KD = glm::vec3(0.640000, 0.640000, 0.640000);
+glm::vec3 TREE_0_LEAVES_KS = glm::vec3(0.500000, 0.500000, 0.500000);
+
+glm::vec3 TREE_1_LEAVES_KA = glm::vec3(1.000000, 1.000000, 1.000000);
+glm::vec3 TREE_1_LEAVES_KD = glm::vec3(0.640000, 0.640000, 0.640000);
+glm::vec3 TREE_1_LEAVES_KS = glm::vec3(0.500000, 0.500000, 0.500000);
+
+glm::vec3 GRASS_0_KA = glm::vec3(1.000000, 1.000000, 1.000000);
+glm::vec3 GRASS_0_KD = glm::vec3(0.588000, 0.588000, 0.588000);
+glm::vec3 GRASS_0_KS = glm::vec3(0.000000, 0.000000, 0.000000);
+
+glm::vec3 GRASS_1_KA = glm::vec3(1.000000, 1.000000, 1.000000);
+glm::vec3 GRASS_1_KD = glm::vec3(0.203922, 0.588235, 0.176471);
+glm::vec3 GRASS_1_KS = glm::vec3(0.000000, 0.000000, 0.000000);
+
 
 int main(){
 	glfwInit();
@@ -246,6 +280,34 @@ void initializeGL(){
 	grass1 = new Object(5);
 	grass1->initialize(m_plantManager);
 
+	plane->ka = PLANE_KA;
+	plane->kd = PLANE_KD;
+	plane->ks = PLANE_KS;
+
+	house1->ka = HOUSE_KA;
+	house1->kd = HOUSE_KD;
+	house1->ks = HOUSE_KS;
+
+	house2->ka = HOUSE_KA;
+	house2->kd = HOUSE_KD;
+	house2->ks = HOUSE_KS;
+
+	tree0_trunk->ka = TREE_0_TRUNK_KA;
+	tree0_trunk->kd = TREE_0_TRUNK_KD;
+	tree0_trunk->ks = TREE_0_TRUNK_KS;
+
+	tree1_trunk->ka = TREE_1_TRUNK_KA;
+	tree1_trunk->kd = TREE_1_TRUNK_KD;
+	tree1_trunk->ks = TREE_1_TRUNK_KS;
+
+	tree0_leaves->ka = TREE_0_LEAVES_KA;
+	tree0_leaves->kd = TREE_0_LEAVES_KD;
+	tree0_leaves->ks = TREE_0_LEAVES_KS;
+
+	tree1_leaves->ka = TREE_1_LEAVES_KA;
+	tree1_leaves->kd = TREE_1_LEAVES_KD;
+	tree1_leaves->ks = TREE_1_LEAVES_KS;
+
 	m_renderer->setProjection(glm::perspective(glm::radians(60.0f), FRAME_WIDTH * 1.0f / FRAME_HEIGHT, 0.1f, 1000.0f));
 	plane->um4p = glm::perspective(glm::radians(60.0f), FRAME_WIDTH * 1.0f / FRAME_HEIGHT, 0.1f, 1000.0f);
 	house1->um4p = glm::perspective(glm::radians(60.0f), FRAME_WIDTH * 1.0f / FRAME_HEIGHT, 0.1f, 1000.0f);
@@ -326,7 +388,7 @@ void paintGL(){
 	glClearBufferfv(GL_DEPTH, 0, ones);
 
 	const float shadow_range = 30.0f;
-	glm::mat4 light_proj_matrix = glm::ortho(-shadow_range, shadow_range, -shadow_range, shadow_range, 0.0f, 5000.0f);
+	glm::mat4 light_proj_matrix = glm::ortho(-shadow_range, shadow_range, -shadow_range, shadow_range, 0.0f, 1000.0f);
 	glm::mat4 light_view_matrix = glm::lookAt(light_position, m_lookAtCenter, glm::vec3(0.0f, 1.0f, 0.0f));
 	glm::mat4 light_vp_matrix = light_proj_matrix * light_view_matrix;
 
@@ -335,8 +397,8 @@ void paintGL(){
 
 	plane->um4m = glm::translate(glm::mat4(1.0f), m_airplanePosition) * m_airplaneRotMat;
 	// plane->um4m = glm::translate(glm::mat4(1.0f), m_airplanePosition);
-	house1->um4m = glm::translate(glm::mat4(1.0f), house1_position);
-	house2->um4m = glm::translate(glm::mat4(1.0f), house2_position);
+	house1->um4m = glm::rotate(glm::translate(glm::mat4(1.0f), house1_position), house1_rotation_angle, glm::vec3(0.0f, 1.0f, 0.0f));
+	house2->um4m = glm::rotate(glm::translate(glm::mat4(1.0f), house2_position), house2_rotation_angle, glm::vec3(0.0f, 1.0f, 0.0f));
 
 	// tree0_trunk->um4m = glm::rotate(glm::mat4(1.0f), -90.0f, glm::vec3(1.0f, 0.0f, 0.0f));
 	// tree0_leaves->um4m = glm::rotate(glm::mat4(1.0f), -90.0f, glm::vec3(1.0f, 0.0f, 0.0f));

@@ -12,9 +12,14 @@ uniform bool normal_mapping_enable;
 uniform mat4 um4mv;
 uniform mat4 um4p;
 
-vec3 Ka = vec3(1.000000, 1.000000, 1.000000);
-vec3 Kd = vec3(0.800000, 0.800000, 0.800000);
-vec3 Ks = vec3(0.500000, 0.500000, 0.500000);
+vec3 Ia = vec3(0.1);
+vec3 Id = vec3(0.8);
+vec3 Is = vec3(0.1);
+float specular_power = 100.0;
+
+uniform vec3 Ka;
+uniform vec3 Kd;
+uniform vec3 Ks;
 
 in VertexData
 {
@@ -36,22 +41,14 @@ void phong_shading_rendering() {
 	vec3 V = normalize(vertexData.V);
 	vec3 H = normalize(L + V);
 
-	vec3 ambient = texture(tex, vertexData.texcoord).rgb;
-	vec3 diffuse_albedo = ambient;
-	vec3 specular_albedo = vec3(1.0);
-	float specular_power = 100.0;
+	vec3 ambient = texture(tex, vertexData.texcoord).rgb * Ia;
+	vec3 diffuse = texture(tex, vertexData.texcoord).rgb * Id * max(dot(N, L), 0.0);
+	vec3 specular = Ks * Is * pow(max(dot(N, H), 0.0), specular_power);
 
-	vec3 diffuse = max(dot(N, L), 0.0) * diffuse_albedo;
-    vec3 specular = pow(max(dot(N, H), 0.0), specular_power) * specular_albedo;
-
-	color = vec4(ambient * 0.1 + diffuse * 0.8 + specular * 0.1, 1.0);
-
-	// color = texture(tex, vertexData.texcoord).rgba;
 	float shadow_factor = textureProj(shadow_tex, vertexData.shadow_coord);
-	if(shadow_factor < 0.5) {
-		// Render Shadow Color
-		color = vec4(0.41, 0.36, 0.37, 1.0) + color;
-	}
+	color = vec4(ambient, 1.0) + shadow_factor * vec4(diffuse + specular, 1.0);
+
+	color = vec4(ambient + diffuse + specular, 1.0);
 }
 
 void normal_mapping_render() {
@@ -65,26 +62,14 @@ void normal_mapping_render() {
     // Calculate R ready for use in Phong lighting.
     vec3 R = reflect(-L, N);
 
-	vec3 ambient = texture(tex, vertexData.texcoord).rgb;
-	vec3 diffuse_albedo = ambient;
-	vec3 specular_albedo = vec3(1.0);
-	float specular_power = 100.0;
+	vec3 ambient = texture(tex, vertexData.texcoord).rgb * Ia;
+	vec3 diffuse = texture(tex, vertexData.texcoord).rgb * Id * max(dot(N, L), 0.0);
+	vec3 specular = Ks * Is * pow(max(dot(R, V), 0.0), specular_power);
 
-
-	// Calculate diffuse color with simple N dot L.
-	vec3 diffuse = max(dot(N, L), 0.0) * diffuse_albedo;
-
-	// Calculate Phong specular highlight
-	// vec3 specular = max(pow(dot(R, V), 20.0), 0.0) * specular_albedo;
-	vec3 specular = pow(max(dot(R, V), 0.0), specular_power) * specular_albedo;
-
-	color = vec4(ambient * 0.1 + diffuse * 0.8 + specular * 0.1, 1.0);
-	
 	float shadow_factor = textureProj(shadow_tex, vertexData.shadow_coord);
-	if(shadow_factor < 0.5) {
-		// Render Shadow Color
-		color = vec4(0.41, 0.36, 0.37, 1.0) + color;
-	}
+	color = vec4(ambient, 1.0) + shadow_factor * vec4(diffuse + specular, 1.0);
+
+	color = vec4(ambient + diffuse + specular, 1.0);
 }
 
 void tree_rendering() {
@@ -92,7 +77,19 @@ void tree_rendering() {
 	if(alpha < 0.1)
 		discard;
 
-	color = texture(tex, vertexData.texcoord);
+	vec3 N = normalize(vertexData.N);
+	vec3 L = normalize(vertexData.L);
+	vec3 V = normalize(vertexData.V);
+	vec3 H = normalize(L + V);
+
+	vec3 ambient = texture(tex, vertexData.texcoord).rgb * Ia;
+	vec3 diffuse = texture(tex, vertexData.texcoord).rgb * Id * max(dot(N, L), 0.0);
+	vec3 specular = Ks * Is * pow(max(dot(N, H), 0.0), specular_power);
+
+	float shadow_factor = textureProj(shadow_tex, vertexData.shadow_coord);
+	color = vec4(ambient, 1.0) + shadow_factor * vec4(diffuse + specular, 1.0);
+
+	color = vec4(ambient + diffuse + specular, 1.0);
 }
 
 void grass_rendering() {
@@ -100,7 +97,16 @@ void grass_rendering() {
 	if(alpha < 0.1)
 		discard;
 
-	color = texture(tex, vertexData.texcoord);
+	vec3 N = normalize(vertexData.N);
+	vec3 L = normalize(vertexData.L);
+	vec3 V = normalize(vertexData.V);
+	vec3 H = normalize(L + V);
+
+	vec3 ambient = texture(tex, vertexData.texcoord).rgb * Ia;
+	vec3 diffuse = texture(tex, vertexData.texcoord).rgb * Id * max(dot(N, L), 0.0);
+	vec3 specular = Ks * Is * pow(max(dot(N, H), 0.0), specular_power);
+
+	color = vec4(ambient + diffuse + specular, 1.0);
 }
 
 void main() {
