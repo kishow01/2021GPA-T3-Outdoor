@@ -445,7 +445,11 @@ void Object::renderLight(GLuint mvp_id, glm::mat4 light_vp_matrix) {
 	glBindVertexArray(m_shape.vao);
 	glUniformMatrix4fv(mvp_id, 1, GL_FALSE, value_ptr(light_vp_matrix * um4m));
 
-	if (type == 2 || type == 3 || type == 4 || type == 5 || type == 6 || type == 7)
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D, m_shape.m_texture);
+	glUniform1i(tex_id, 3);
+
+	if (type == 2 || type == 3 || type == 6 || type == 7)
 		glDrawElementsInstanced(GL_TRIANGLES, m_shape.vertexCount, GL_UNSIGNED_INT, 0, m_numPlantInstance);
 	else 
 		glDrawElements(GL_TRIANGLES, m_shape.vertexCount, GL_UNSIGNED_INT, 0);
