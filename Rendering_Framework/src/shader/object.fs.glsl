@@ -48,7 +48,7 @@ void phong_shading_rendering() {
 	float shadow_factor = textureProj(shadow_tex, vertexData.shadow_coord);
 	color = vec4(ambient, 1.0) + shadow_factor * vec4(diffuse + specular, 1.0);
 
-	color = vec4(ambient + diffuse + specular, 1.0);
+	// color = vec4(ambient + diffuse + specular, 1.0);
 }
 
 void normal_mapping_render() {
@@ -69,7 +69,7 @@ void normal_mapping_render() {
 	float shadow_factor = textureProj(shadow_tex, vertexData.shadow_coord);
 	color = vec4(ambient, 1.0) + shadow_factor * vec4(diffuse + specular, 1.0);
 
-	color = vec4(ambient + diffuse + specular, 1.0);
+	// color = vec4(ambient + diffuse + specular, 1.0);
 }
 
 void tree_rendering() {
@@ -89,7 +89,7 @@ void tree_rendering() {
 	float shadow_factor = textureProj(shadow_tex, vertexData.shadow_coord);
 	color = vec4(ambient, 1.0) + shadow_factor * vec4(diffuse + specular, 1.0);
 
-	color = vec4(ambient + diffuse + specular, 1.0);
+	// color = vec4(ambient + diffuse + specular, 1.0);
 }
 
 void grass_rendering() {
