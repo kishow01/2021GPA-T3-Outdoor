@@ -4,7 +4,8 @@ uniform sampler2DShadow shadow_tex;
 uniform sampler2D tex;
 uniform sampler2D normal_tex;
 
-out vec4 color;
+layout (location = 0) out vec4 color;
+layout (location = 1) out vec4 brightFilterColor;
 
 uniform int render_type;
 uniform bool normal_mapping_enable;
@@ -16,6 +17,8 @@ vec3 Ia = vec3(0.1);
 vec3 Id = vec3(0.8);
 vec3 Is = vec3(0.1);
 float specular_power = 100.0;
+
+vec3 Bloom_Id = vec3(1.2);
 
 uniform vec3 Ka;
 uniform vec3 Kd;
@@ -29,17 +32,23 @@ in VertexData
     vec2 texcoord;
 	vec3 iv3normal;
 
+	vec3 L_bloom;
+
 	vec3 lightDir;
 	vec3 eyeDir;
 
 	vec4 shadow_coord;
 } vertexData;
 
+vec4 bloom_color;
+
 void phong_shading_rendering() {
 	vec3 N = normalize(vertexData.N);
 	vec3 L = normalize(vertexData.L);
 	vec3 V = normalize(vertexData.V);
 	vec3 H = normalize(L + V);
+
+	vec3 l_bloom = normalize(vertexData.L_bloom);
 
 	vec3 ambient = texture(tex, vertexData.texcoord).rgb * Ia;
 	vec3 diffuse = texture(tex, vertexData.texcoord).rgb * Id * max(dot(N, L), 0.0);
@@ -48,7 +57,11 @@ void phong_shading_rendering() {
 	float shadow_factor = textureProj(shadow_tex, vertexData.shadow_coord);
 	color = vec4(ambient, 1.0) + shadow_factor * vec4(diffuse + specular, 1.0);
 
-	// color = vec4(ambient + diffuse + specular, 1.0);
+	vec3 bloom_diffuse = texture(tex, vertexData.texcoord).rgb * Bloom_Id * max(dot(N, l_bloom), 0.0);
+	bloom_color = vec4(ambient, 1.0) + shadow_factor * vec4(bloom_diffuse + specular, 1.0);
+
+	float brightness = (bloom_color.r + bloom_color.g + bloom_color.b) / 3.0f;
+	brightFilterColor = bloom_color * brightness;
 }
 
 void normal_mapping_render() {
@@ -66,10 +79,16 @@ void normal_mapping_render() {
 	vec3 diffuse = texture(tex, vertexData.texcoord).rgb * Id * max(dot(N, L), 0.0);
 	vec3 specular = Ks * Is * pow(max(dot(R, V), 0.0), specular_power);
 
+	vec3 l_bloom = normalize(vertexData.L_bloom);
+
 	float shadow_factor = textureProj(shadow_tex, vertexData.shadow_coord);
 	color = vec4(ambient, 1.0) + shadow_factor * vec4(diffuse + specular, 1.0);
 
-	// color = vec4(ambient + diffuse + specular, 1.0);
+	vec3 bloom_diffuse = texture(tex, vertexData.texcoord).rgb * Bloom_Id * max(dot(N, l_bloom), 0.0);
+	bloom_color = vec4(ambient, 1.0) + shadow_factor * vec4(bloom_diffuse + specular, 1.0);
+
+	float brightness = (bloom_color.r + bloom_color.g + bloom_color.b) / 3.0f;
+	brightFilterColor = bloom_color * brightness;
 }
 
 void tree_rendering() {
@@ -82,6 +101,8 @@ void tree_rendering() {
 	vec3 V = normalize(vertexData.V);
 	vec3 H = normalize(L + V);
 
+	vec3 l_bloom = normalize(vertexData.L_bloom);
+
 	vec3 ambient = texture(tex, vertexData.texcoord).rgb * Ia;
 	vec3 diffuse = texture(tex, vertexData.texcoord).rgb * Id * max(dot(N, L), 0.0);
 	vec3 specular = Ks * Is * pow(max(dot(N, H), 0.0), specular_power);
@@ -89,7 +110,11 @@ void tree_rendering() {
 	float shadow_factor = textureProj(shadow_tex, vertexData.shadow_coord);
 	color = vec4(ambient, 1.0) + shadow_factor * vec4(diffuse + specular, 1.0);
 
-	// color = vec4(ambient + diffuse + specular, 1.0);
+	vec3 bloom_diffuse = texture(tex, vertexData.texcoord).rgb * Bloom_Id * max(dot(N, l_bloom), 0.0);
+	bloom_color = vec4(ambient, 1.0) + shadow_factor * vec4(bloom_diffuse + specular, 1.0);
+
+	float brightness = (bloom_color.r + bloom_color.g + bloom_color.b) / 3.0f;
+	brightFilterColor = bloom_color * brightness;
 }
 
 void grass_rendering() {
@@ -102,11 +127,24 @@ void grass_rendering() {
 	vec3 V = normalize(vertexData.V);
 	vec3 H = normalize(L + V);
 
+	vec3 l_bloom = normalize(vertexData.L_bloom);
+
 	vec3 ambient = texture(tex, vertexData.texcoord).rgb * Ia;
 	vec3 diffuse = texture(tex, vertexData.texcoord).rgb * Id * max(dot(N, L), 0.0);
 	vec3 specular = Ks * Is * pow(max(dot(N, H), 0.0), specular_power);
 
 	color = vec4(ambient + diffuse + specular, 1.0);
+
+	vec3 bloom_diffuse = texture(tex, vertexData.texcoord).rgb * Bloom_Id * max(dot(N, l_bloom), 0.0);
+	bloom_color = vec4(ambient + bloom_diffuse + specular, 1.0);
+
+	float brightness = (bloom_color.r + bloom_color.g + bloom_color.b) / 3.0f;
+	brightFilterColor = bloom_color * brightness;
+}
+
+void bloom_rendering() {
+	color = vec4(1.0);
+	brightFilterColor = vec4(1.0);
 }
 
 void main() {
@@ -122,5 +160,7 @@ void main() {
 	} else if (render_type == 4 || render_type == 5) {
 		grass_rendering();
 		// phong_shading_rendering();
+	} else if (render_type == 8) {
+		bloom_rendering();
 	}
 }

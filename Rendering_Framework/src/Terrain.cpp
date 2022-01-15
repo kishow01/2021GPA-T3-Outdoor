@@ -76,11 +76,11 @@ void Terrain::update(glm::mat4 shadow_sbpv_matrix) {
 
 void Terrain::updateLight(GLuint mvp_id, glm::mat4 light_vp_matrix) {
 	glBindVertexArray(m_shadowVAO);
-
+	/*
 	this->m_elevationTex->bind();
 	this->m_normalTex->bind();
 	this->m_colorTex->bind();
-
+	*/
 	for (int i = 0; i < 4; i++) {
 		glUniformMatrix4fv(mvp_id, 1, false, glm::value_ptr(light_vp_matrix * this->m_chunkRotMat[i]));
 

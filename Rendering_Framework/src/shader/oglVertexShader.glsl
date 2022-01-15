@@ -8,6 +8,13 @@ out vec3 f_viewVertex ;
 out vec3 f_uv;
 out vec4 shadow_coord;
 
+// phong shading & brightFilterColor
+out vec3 N;
+out vec3 L;
+out vec3 V; 
+
+uniform vec3 bloom_pos = vec3(636.48, 134.79, 495.98);
+
 uniform mat4 projMat ;
 uniform mat4 viewMat ;
 uniform mat4 modelMat ;
@@ -48,6 +55,11 @@ void renderTerrain(){
 	gl_Position = projMat * viewVertex ;
 
 	shadow_coord = shadow_matrix * vec4(v_vertex, 1.0);
+
+	// phong shading & brightFilterColor
+	N = mat3(modelMat) * v_normal;
+	L = bloom_pos - worldV.xyz;
+	V = -worldV.xyz;
 }
 
 void main(){	
