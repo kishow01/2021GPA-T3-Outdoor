@@ -16,6 +16,7 @@ uniform mat4 um4p;
 
 uniform vec3 light_pos = vec3(0.2, 0.6, 0.5);
 // uniform vec3 light_pos = vec3(1.0, 1.0, 1.0);
+uniform vec3 bloom_pos = vec3(636.48, 134.79, 495.98);
 
 out VertexData
 {
@@ -25,6 +26,8 @@ out VertexData
     vec3 V; 
     vec2 texcoord;
 	vec3 iv3normal;
+
+	vec3 L_bloom;
 
 	// normal_mapping_render
 	vec3 lightDir;
@@ -52,6 +55,8 @@ void phong_shading_rendering() {
 	vertexData.N = mat3(um4mv) * iv3normal;
 	vertexData.L = light_pos - P.xyz;
 	vertexData.V = -P.xyz;
+
+	vertexData.L_bloom = bloom_pos - P.xyz;
 
 	gl_Position = um4p * um4mv * vec4(iv3vertex, 1.0);
 	vertexData.iv3normal = iv3normal;
@@ -88,6 +93,8 @@ void normal_mapping_render() {
 	vertexData.texcoord = iv2tex_coord;
 	vertexData.iv3normal = iv3normal;
 
+	vertexData.L_bloom = bloom_pos - P.xyz;
+
 	gl_Position = um4p * um4mv * vec4(iv3vertex, 1.0);
 	vertexData.shadow_coord = shadow_matrix * vec4(iv3vertex, 1.0);
 }
@@ -98,6 +105,8 @@ void grass_rendering() {
 	vertexData.N = mat3(um4mv) * iv3normal;
 	vertexData.L = light_pos - P.xyz;
 	vertexData.V = -P.xyz;
+
+	vertexData.L_bloom = bloom_pos - P.xyz;
 
 	gl_Position = um4p * um4mv * vec4(iv3vertex + iv3instance_vertex, 1.0);
 	vertexData.texcoord = iv2tex_coord;
@@ -114,6 +123,8 @@ void tree_rendering() {
 	vertexData.L = light_pos - P.xyz;
 	vertexData.V = -P.xyz;
 
+	vertexData.L_bloom = bloom_pos - P.xyz;
+
 	gl_Position = um4p * um4mv * vec4(p + iv3instance_vertex, 1.0);
 	vertexData.iv3normal = iv3normal;
 	vertexData.texcoord = iv2tex_coord;
@@ -121,7 +132,21 @@ void tree_rendering() {
 	vertexData.shadow_coord = shadow_matrix * vec4(p + iv3instance_vertex, 1.0);
 }
 
+void bloom_rendering() {
+	vec4 P = um4mv * vec4(iv3vertex, 1.0);
 
+	vertexData.N = mat3(um4mv) * iv3normal;
+	vertexData.L_bloom = light_pos - P.xyz;
+	vertexData.V = -P.xyz;
+
+	vertexData.L_bloom = bloom_pos - P.xyz;
+
+	gl_Position = um4p * um4mv * vec4(iv3vertex, 1.0);
+	vertexData.iv3normal = iv3normal;
+	vertexData.texcoord = iv2tex_coord;
+
+	vertexData.shadow_coord = shadow_matrix * vec4(iv3vertex, 1.0);
+}
 
 void main() {
 	if(render_type == 0)
@@ -135,5 +160,7 @@ void main() {
 		tree_rendering();
 	} else if (render_type == 4 || render_type == 5) {
 		grass_rendering();
+	} else if (render_type == 8) {
+		bloom_rendering();
 	}
 }

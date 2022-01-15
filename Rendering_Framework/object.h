@@ -50,6 +50,8 @@ private:
 	// 3 for rendering tree1's trunk
 	// 4 for rendering grass0
 	// 5 for rendering grass1
+	bool forBloomEffect;
+
 public:
 	bool enable_normal_mapping;
 public:

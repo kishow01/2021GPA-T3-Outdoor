@@ -62,6 +62,8 @@ void Object::loadModule(PlantManager *m_plantManager) {
 		ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, "models\\trees\\baum_hd_pine_leaves.obj", "models\\trees");
 	else if(type == 7)
 		ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, "models\\trees\\baum_hd_leaves.obj", "models\\trees");
+	else if(type == 8)
+		ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, "models\\Sphere.obj");
 
 	if (!warn.empty()) {
 		cout << warn << endl;
@@ -377,6 +379,7 @@ void Object::initialize(PlantManager *m_plantManager) {
 	loadModule(m_plantManager);
 
 	// Set up Shader for plane
+	// this->m_shader = new Shader("src\\shader\\brightFilter.vs.glsl", "src\\shader\\brightFilter.fs.glsl");
 	this->m_shader = new Shader("src\\shader\\object.vs.glsl", "src\\shader\\object.fs.glsl");
 
 	const GLuint programId = this->m_shader->getProgramID();
@@ -445,9 +448,11 @@ void Object::renderLight(GLuint mvp_id, glm::mat4 light_vp_matrix) {
 	glBindVertexArray(m_shape.vao);
 	glUniformMatrix4fv(mvp_id, 1, GL_FALSE, value_ptr(light_vp_matrix * um4m));
 
-	glActiveTexture(GL_TEXTURE3);
-	glBindTexture(GL_TEXTURE_2D, m_shape.m_texture);
-	glUniform1i(tex_id, 3);
+	if(type == 2 || type == 3 || type == 6 || type == 7) {
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, m_shape.m_texture);
+		glUniform1i(tex_id, 3);
+	}
 
 	if (type == 2 || type == 3 || type == 6 || type == 7)
 		glDrawElementsInstanced(GL_TRIANGLES, m_shape.vertexCount, GL_UNSIGNED_INT, 0, m_numPlantInstance);
