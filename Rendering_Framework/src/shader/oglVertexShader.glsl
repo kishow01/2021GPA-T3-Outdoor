@@ -35,6 +35,8 @@ vec3 getTerrainVertex(vec4 worldV){
 
 void renderTerrain(){	
 	vec4 worldV = modelMat * vec4(v_vertex, 1.0) ;
+	vec4 bp = modelMat * vec4(bloom_pos, 1.0);
+
 	worldV.w = 1.0;
 	vec3 cVertex = getTerrainVertex(worldV) ;	
 	
@@ -58,7 +60,7 @@ void renderTerrain(){
 
 	// phong shading & brightFilterColor
 	N = mat3(modelMat) * v_normal;
-	L = bloom_pos - worldV.xyz;
+	L = vec3(bp) - worldV.xyz;
 	V = -worldV.xyz;
 }
 

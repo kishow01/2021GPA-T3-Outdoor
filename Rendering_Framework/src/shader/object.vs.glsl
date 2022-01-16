@@ -51,12 +51,13 @@ mat4 rotationMatrix(vec3 axis, float angle)
 
 void phong_shading_rendering() {
 	vec4 P = um4mv * vec4(iv3vertex, 1.0);
+	vec4 bp = um4mv * vec4(bloom_pos, 1.0);
 
 	vertexData.N = mat3(um4mv) * iv3normal;
 	vertexData.L = light_pos - P.xyz;
 	vertexData.V = -P.xyz;
 
-	vertexData.L_bloom = bloom_pos - P.xyz;
+	vertexData.L_bloom = vec3(bp) - P.xyz;
 
 	gl_Position = um4p * um4mv * vec4(iv3vertex, 1.0);
 	vertexData.iv3normal = iv3normal;
@@ -68,6 +69,7 @@ void phong_shading_rendering() {
 void normal_mapping_render() {
 	// Calculate vertex position in view space.
 	vec4 P = um4mv * vec4(iv3vertex, 1.0);
+	vec4 bp = um4mv * vec4(bloom_pos, 1.0);
 
 	// Calculate normal (N) and tangent (T) vectors in view space from
 	// incoming object space vectors.
@@ -93,7 +95,7 @@ void normal_mapping_render() {
 	vertexData.texcoord = iv2tex_coord;
 	vertexData.iv3normal = iv3normal;
 
-	vertexData.L_bloom = bloom_pos - P.xyz;
+	vertexData.L_bloom = vec3(bp) - P.xyz;
 
 	gl_Position = um4p * um4mv * vec4(iv3vertex, 1.0);
 	vertexData.shadow_coord = shadow_matrix * vec4(iv3vertex, 1.0);
@@ -101,12 +103,13 @@ void normal_mapping_render() {
 
 void grass_rendering() {
 	vec4 P = um4mv * vec4(iv3vertex + iv3instance_vertex, 1.0);
+	vec4 bp = um4mv * vec4(bloom_pos, 1.0);
 
 	vertexData.N = mat3(um4mv) * iv3normal;
 	vertexData.L = light_pos - P.xyz;
 	vertexData.V = -P.xyz;
 
-	vertexData.L_bloom = bloom_pos - P.xyz;
+	vertexData.L_bloom = vec3(bp) - P.xyz;
 
 	gl_Position = um4p * um4mv * vec4(iv3vertex + iv3instance_vertex, 1.0);
 	vertexData.texcoord = iv2tex_coord;
@@ -116,6 +119,7 @@ void grass_rendering() {
 void tree_rendering() {
 	mat4 rm = rotationMatrix(vec3(1.0f, 0.0f, 0.0f), -90.0f);
 	vec3 p = vec3(rm * vec4(iv3vertex, 1.0f));
+	vec4 bp = um4mv * vec4(bloom_pos, 1.0);
 
 	vec4 P = um4mv * vec4(p + iv3instance_vertex, 1.0);
 
@@ -123,7 +127,7 @@ void tree_rendering() {
 	vertexData.L = light_pos - P.xyz;
 	vertexData.V = -P.xyz;
 
-	vertexData.L_bloom = bloom_pos - P.xyz;
+	vertexData.L_bloom = vec3(bp) - P.xyz;
 
 	gl_Position = um4p * um4mv * vec4(p + iv3instance_vertex, 1.0);
 	vertexData.iv3normal = iv3normal;
@@ -134,12 +138,13 @@ void tree_rendering() {
 
 void bloom_rendering() {
 	vec4 P = um4mv * vec4(iv3vertex, 1.0);
+	vec4 bp = um4mv * vec4(bloom_pos, 1.0);
 
 	vertexData.N = mat3(um4mv) * iv3normal;
 	vertexData.L_bloom = light_pos - P.xyz;
 	vertexData.V = -P.xyz;
 
-	vertexData.L_bloom = bloom_pos - P.xyz;
+	vertexData.L_bloom = vec3(bp) - P.xyz;
 
 	gl_Position = um4p * um4mv * vec4(iv3vertex, 1.0);
 	vertexData.iv3normal = iv3normal;

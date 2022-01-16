@@ -67,7 +67,7 @@ void Terrain::update(glm::mat4 shadow_sbpv_matrix) {
 
 	for (int i = 0; i < 4; i++) {		
 		glUniformMatrix4fv(manager->m_modelMatHandle, 1, false, glm::value_ptr(this->m_chunkRotMat[i]));
-		glUniformMatrix4fv(manager->m_shadowMatHandle, 1, false, glm::value_ptr(shadow_sbpv_matrix * this->m_chunkRotMat[i]));
+		glUniformMatrix4fv(manager->m_shadowMatHandle, 1, false, glm::value_ptr(this->m_chunkRotMat[i] * shadow_sbpv_matrix));
 
 		int indicesPointer = this->m_elevationTex->m_vertexStart * 4;
 		glDrawElements(this->m_elevationTex->m_mode, this->m_elevationTex->m_vertexCount, GL_UNSIGNED_INT, (GLvoid*)(indicesPointer));

@@ -444,14 +444,14 @@ void Object::renderPass(GLuint depthMap) {
 	this->m_shader->disableShader();
 }
 
-void Object::renderLight(GLuint mvp_id, glm::mat4 light_vp_matrix) {
+void Object::renderLight(GLuint mvp_id, GLuint tex_id1, glm::mat4 light_vp_matrix) {
 	glBindVertexArray(m_shape.vao);
 	glUniformMatrix4fv(mvp_id, 1, GL_FALSE, value_ptr(light_vp_matrix * um4m));
 
 	if(type == 2 || type == 3 || type == 6 || type == 7) {
 		glActiveTexture(GL_TEXTURE3);
 		glBindTexture(GL_TEXTURE_2D, m_shape.m_texture);
-		glUniform1i(tex_id, 3);
+		glUniform1i(tex_id1, 3);
 	}
 
 	if (type == 2 || type == 3 || type == 6 || type == 7)
