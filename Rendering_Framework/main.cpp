@@ -6,6 +6,10 @@
 
 #include "object.h"
 
+#include "src/imgui/imgui.h"
+#include "src/imgui/imgui_impl_glfw.h"
+#include "src/imgui/imgui_impl_opengl3.h"
+
 #define SHADOW_MAP_SIZE 4096
 #define PI 3.1415
 #define deg2rad(x) ((x) * ((PI)/(180.0)))
@@ -49,7 +53,7 @@ Terrain *m_terrain = nullptr;
 
 Object *plane = nullptr;
 
-glm::vec3 plane_direction = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 plane_direction = glm::vec3(0.0f, 0.0f, 1.0f);
 
 // the airplane's transformation has been handled
 glm::vec3 m_airplanePosition;
@@ -86,6 +90,7 @@ struct {
 	struct {
 		GLint   mvp;
 		GLint   type; 
+		GLint   tex;
 	} light;
 	struct {
 		GLint tex;
@@ -94,8 +99,8 @@ struct {
 	} final;
 } uniforms;
 
-// glm::vec3 light_position = glm::vec3(636.48, 134.79, 495.98);
 glm::vec3 light_position = glm::vec3(0.2, 0.6, 0.5);
+// glm::vec3 light_position = glm::vec3(50, 300, 50);
 
 Shader *depthShader = nullptr;
 Shader *finalShader = nullptr;
@@ -115,47 +120,12 @@ static const GLfloat window_vertex[] = {
 	 1.0f,  1.0f, 1.0f, 1.0f
 };
 
-void printGLError()
-{
-	GLenum code = glGetError();
-	switch (code)
-	{
-	case GL_NO_ERROR:
-		std::cout << "GL_NO_ERROR" << std::endl;
-		break;
-	case GL_INVALID_ENUM:
-		std::cout << "GL_INVALID_ENUM" << std::endl;
-		break;
-	case GL_INVALID_VALUE:
-		std::cout << "GL_INVALID_VALUE" << std::endl;
-		break;
-	case GL_INVALID_OPERATION:
-		std::cout << "GL_INVALID_OPERATION" << std::endl;
-		break;
-	case GL_INVALID_FRAMEBUFFER_OPERATION:
-		std::cout << "GL_INVALID_FRAMEBUFFER_OPERATION" << std::endl;
-		break;
-	case GL_OUT_OF_MEMORY:
-		std::cout << "GL_OUT_OF_MEMORY" << std::endl;
-		break;
-	case GL_STACK_UNDERFLOW:
-		std::cout << "GL_STACK_UNDERFLOW" << std::endl;
-		break;
-	case GL_STACK_OVERFLOW:
-		std::cout << "GL_STACK_OVERFLOW" << std::endl;
-		break;
-	default:
-		std::cout << "GL_ERROR" << std::endl;
-	}
-}
-
-
 // FBO parameter
 GLuint S_fbo;
 GLuint S_rbo;
 GLuint S_FBODataTexture[2];
 
-int render_option = 0;
+bool render_option = 0;
 int bloom_option = 0;
 
 // Texture parameters
@@ -237,6 +207,14 @@ void vsyncDisabled(GLFWwindow *window){
 	double previousTime = glfwGetTime();
 	double previousTimeForFPS = glfwGetTime();
 	int frameCount = 0;
+
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	ImGui::StyleColorsDark();
+	ImGui_ImplGlfw_InitForOpenGL(window, true);
+	ImGui_ImplOpenGL3_Init("#version 410");
+
 	while (!glfwWindowShouldClose(window)){
 		// measure speed
 		double currentTime = glfwGetTime();
@@ -256,10 +234,49 @@ void vsyncDisabled(GLFWwindow *window){
 			accumulatedEventPeriod = accumulatedEventPeriod - periodForEvent;
 		}
 
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+
 		paintGL();
+
+		ImGui::Begin("Outdoor DashBoard");
+
+		ImGui::Text("Press 'Q' & 'E' for plane rotation");
+
+		ImGui::Checkbox("Enable Normal Mapping", &nm_mapping_enable);
+		if(ImGui::Checkbox("House Focus", &render_option)) {
+			if (render_option == 1) {
+				m_lookAtCenter_t = m_lookAtCenter;
+				m_eye_t = m_eye;
+			}
+			else if (render_option == 0) {
+				m_lookAtCenter = m_lookAtCenter_t;
+				m_eye = m_eye_t;
+			}
+		}
+
+		ImGui::RadioButton("Normal Rendering", &bloom_option, 0); ImGui::SameLine();
+		ImGui::RadioButton("Without Bloom", &bloom_option, 1); ImGui::SameLine();
+		ImGui::RadioButton("Only Bloom", &bloom_option, 2);
+
+
+		ImGui::SliderFloat("m_lookAtCenter.x", &m_lookAtCenter.x, 0.f, 1000.f);
+		ImGui::SliderFloat("m_lookAtCenter.x", &m_lookAtCenter.y, 0.f, 1000.f);
+		ImGui::SliderFloat("m_lookAtCenter.z", &m_lookAtCenter.z, 0, 1000.f);
+
+		ImGui::End();
+
+		ImGui::Render();
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
+
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
 }
 void vsyncEnabled(GLFWwindow *window){
 	double previousTimeForFPS = glfwGetTime();
@@ -286,6 +303,7 @@ void initializeGL(){
 	depthShader = new Shader("src\\shader\\shadow.vs.glsl", "src\\shader\\shadow.fs.glsl");
 	uniforms.light.mvp = glGetUniformLocation(depthShader->getProgramID(), "mvp");
 	uniforms.light.type = glGetUniformLocation(depthShader->getProgramID(), "render_type");
+	uniforms.light.tex = glGetUniformLocation(depthShader->getProgramID(), "tex");
 
 	// Set Up Depth FBO
 	glGenFramebuffers(1, &shadowBuffer.fbo);
@@ -491,14 +509,14 @@ void updateState(){
 	// m_lookAtCenter = ... ;
 	
 	if(render_option == 0) {
-		m_lookAtCenter = m_lookAtCenter - plane_direction;
+		m_lookAtCenter = m_lookAtCenter + plane_direction;
 		m_eye = m_lookAtCenter + m_eye0ffset;
 	}
 	
 	/* Testing Normal Mapping */
 	if(render_option == 1) {
-		m_lookAtCenter_t = m_lookAtCenter_t - plane_direction;
-		m_eye_t = m_eye_t - plane_direction;
+		m_lookAtCenter_t = m_lookAtCenter_t + plane_direction;
+		m_eye_t = m_eye_t + plane_direction;
 
 		m_lookAtCenter = house1_position;
 		m_eye = house1_position + glm::vec3(-35.0, 40.0, -35.0);
@@ -535,7 +553,7 @@ void paintGL(){
 	glClearBufferfv(GL_DEPTH, 0, ones);
 
 	const float shadow_range = 100.0f;
-	glm::mat4 light_proj_matrix = glm::ortho(-shadow_range, shadow_range, -shadow_range, shadow_range, 0.1f, 1000.0f);
+	glm::mat4 light_proj_matrix = glm::ortho(-shadow_range, shadow_range, -shadow_range, shadow_range, 0.1f, 5000.0f);
 	glm::mat4 light_view_matrix = glm::lookAt(light_position, m_lookAtCenter, glm::vec3(0.0f, 1.0f, 0.0f));
 	glm::mat4 light_vp_matrix = light_proj_matrix * light_view_matrix;
 
@@ -559,29 +577,25 @@ void paintGL(){
 	glEnable(GL_DEPTH_TEST);
 	
 	glBindFramebuffer(GL_FRAMEBUFFER, shadowBuffer.fbo);
-	// glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	depthShader->useShader();
 	glClear(GL_DEPTH_BUFFER_BIT);
 
 	glViewport(0, 0, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE);
-	// glViewport(0, 0, FRAME_WIDTH, FRAME_HEIGHT);
 
 	glEnable(GL_POLYGON_OFFSET_FILL);
 	glPolygonOffset(4.0f, 4.0f);
 
-	// m_renderer->renderLight(uniforms.light.mvp, light_vp_matrix);
-
 	glUniform1i(uniforms.light.type, 0);
-	plane->renderLight(uniforms.light.mvp, light_vp_matrix);
-	house1->renderLight(uniforms.light.mvp, light_vp_matrix);
-	house2->renderLight(uniforms.light.mvp, light_vp_matrix);
+	plane->renderLight(uniforms.light.mvp, uniforms.light.tex, light_vp_matrix);
+	house1->renderLight(uniforms.light.mvp, uniforms.light.tex, light_vp_matrix);
+	house2->renderLight(uniforms.light.mvp, uniforms.light.tex, light_vp_matrix);
 	
 	/*
 	glUniform1i(uniforms.light.type, 1);
-	tree0_trunk->renderLight(uniforms.light.mvp, light_vp_matrix);
-	tree0_leaves->renderLight(uniforms.light.mvp, light_vp_matrix);
-	tree1_trunk->renderLight(uniforms.light.mvp, light_vp_matrix);
-	tree1_leaves->renderLight(uniforms.light.mvp, light_vp_matrix);
+	tree0_trunk->renderLight(uniforms.light.mvp, uniforms.light.tex, light_vp_matrix);
+	tree0_leaves->renderLight(uniforms.light.mvp, uniforms.light.tex, light_vp_matrix);
+	tree1_trunk->renderLight(uniforms.light.mvp, uniforms.light.tex, light_vp_matrix);
+	tree1_leaves->renderLight(uniforms.light.mvp, uniforms.light.tex, light_vp_matrix);
 	*/
 	/* 植物應該不需要畫陰影 */
 	// grass0->renderLight(uniforms.light.mvp, light_vp_matrix);
@@ -593,7 +607,6 @@ void paintGL(){
 	///////////// Code: DrawCall #2 Rendering Object from Camera View /////////////
 	glBindFramebuffer(GL_FRAMEBUFFER, S_fbo);
 	glDrawBuffers(2, draw_buffers);
-	// glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glViewport(0, 0, FRAME_WIDTH, FRAME_HEIGHT);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -648,6 +661,7 @@ void paintGL(){
 	
 	glActiveTexture(GL_TEXTURE5);
 	glBindTexture(GL_TEXTURE_2D, S_FBODataTexture[0]);
+	// glBindTexture(GL_TEXTURE_2D, shadowBuffer.depthMap);
 	glUniform1i(uniforms.final.tex, 5);
 
 	glActiveTexture(GL_TEXTURE6);
@@ -695,7 +709,7 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 		}
 
 
-		render_option = (render_option + 1) % 2;
+		render_option = !render_option;
 	} else if((key == 'S' || key == 's') && action == GLFW_PRESS)
 		bloom_option = (bloom_option + 1) % 3;
 }

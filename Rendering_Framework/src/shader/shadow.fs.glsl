@@ -10,7 +10,7 @@ in VertexData {
 } vertexData;
 
 void main() {
-	if(render_type == 0 || render_type == 1)
+	if(render_type == 0)
 		fragColor = vec4(vec3(gl_FragCoord.z), 1.0);
 	else {
 		float alpha = texture(tex, vertexData.texcoord).a;

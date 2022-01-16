@@ -35,7 +35,10 @@ void main(void) {
 		gl_Position = mvp * vec4(position, 1.0f);
 	}
 	else {
-		gl_Position = mvp * vec4(position + iv3instance_vertex, 1.0);
+		mat4 rm = rotationMatrix(vec3(1.0f, 0.0f, 0.0f), -90.0f);
+		vec3 p = vec3(rm * vec4(position, 1.0f));
+
+		gl_Position = mvp * vec4(p + iv3instance_vertex, 1.0);
 		vertexData.texcoord = iv2tex_coord;
 	}
 }

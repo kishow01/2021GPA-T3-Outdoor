@@ -18,7 +18,7 @@ vec3 Id = vec3(0.8);
 vec3 Is = vec3(0.1);
 float specular_power = 100.0;
 
-vec3 Bloom_Id = vec3(1.2);
+vec3 Bloom_Id = vec3(1.8);
 
 uniform vec3 Ka;
 uniform vec3 Kd;
@@ -57,8 +57,11 @@ void phong_shading_rendering() {
 	float shadow_factor = textureProj(shadow_tex, vertexData.shadow_coord);
 	color = vec4(ambient, 1.0) + shadow_factor * vec4(diffuse + specular, 1.0);
 
+	float d = length(vertexData.L_bloom);
+	float attenuation = clamp( 10.0 / d, 0.0, 1.0);
+
 	vec3 bloom_diffuse = texture(tex, vertexData.texcoord).rgb * Bloom_Id * max(dot(N, l_bloom), 0.0);
-	bloom_color = vec4(ambient, 1.0) + shadow_factor * vec4(bloom_diffuse + specular, 1.0);
+	bloom_color = attenuation * (vec4(ambient, 1.0) + shadow_factor * vec4(bloom_diffuse + specular, 1.0));
 
 	float brightness = (bloom_color.r + bloom_color.g + bloom_color.b) / 3.0f;
 	brightFilterColor = bloom_color * brightness;
@@ -84,8 +87,11 @@ void normal_mapping_render() {
 	float shadow_factor = textureProj(shadow_tex, vertexData.shadow_coord);
 	color = vec4(ambient, 1.0) + shadow_factor * vec4(diffuse + specular, 1.0);
 
+	float d = length(vertexData.L_bloom);
+	float attenuation = clamp( 10.0 / d, 0.0, 1.0);
+
 	vec3 bloom_diffuse = texture(tex, vertexData.texcoord).rgb * Bloom_Id * max(dot(N, l_bloom), 0.0);
-	bloom_color = vec4(ambient, 1.0) + shadow_factor * vec4(bloom_diffuse + specular, 1.0);
+	bloom_color = attenuation * (vec4(ambient, 1.0) + shadow_factor * vec4(bloom_diffuse + specular, 1.0));
 
 	float brightness = (bloom_color.r + bloom_color.g + bloom_color.b) / 3.0f;
 	brightFilterColor = bloom_color * brightness;
@@ -110,8 +116,11 @@ void tree_rendering() {
 	float shadow_factor = textureProj(shadow_tex, vertexData.shadow_coord);
 	color = vec4(ambient, 1.0) + shadow_factor * vec4(diffuse + specular, 1.0);
 
+	float d = length(vertexData.L_bloom);
+	float attenuation = clamp( 10.0 / d, 0.0, 1.0);
+
 	vec3 bloom_diffuse = texture(tex, vertexData.texcoord).rgb * Bloom_Id * max(dot(N, l_bloom), 0.0);
-	bloom_color = vec4(ambient, 1.0) + shadow_factor * vec4(bloom_diffuse + specular, 1.0);
+	bloom_color = attenuation * (vec4(ambient, 1.0) + shadow_factor * vec4(bloom_diffuse + specular, 1.0));
 
 	float brightness = (bloom_color.r + bloom_color.g + bloom_color.b) / 3.0f;
 	brightFilterColor = bloom_color * brightness;
@@ -135,8 +144,11 @@ void grass_rendering() {
 
 	color = vec4(ambient + diffuse + specular, 1.0);
 
+	float d = length(vertexData.L_bloom);
+	float attenuation = clamp( 10.0 / d, 0.0, 1.0);
+
 	vec3 bloom_diffuse = texture(tex, vertexData.texcoord).rgb * Bloom_Id * max(dot(N, l_bloom), 0.0);
-	bloom_color = vec4(ambient + bloom_diffuse + specular, 1.0);
+	bloom_color = attenuation * (vec4(ambient + bloom_diffuse + specular, 1.0));
 
 	float brightness = (bloom_color.r + bloom_color.g + bloom_color.b) / 3.0f;
 	brightFilterColor = bloom_color * brightness;

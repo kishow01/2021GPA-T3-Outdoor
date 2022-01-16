@@ -68,7 +68,7 @@ public:
 	virtual ~Object();
 	void initialize(PlantManager *m_plantManager);
 	void renderPass(GLuint depthMap);
-	void renderLight(GLuint mvp_id, glm::mat4 light_vp_matrix);
+	void renderLight(GLuint mvp_id, GLuint tex_id1, glm::mat4 light_vp_matrix);
 private:
 	void loadModule(PlantManager *m_plantManager);
 };
