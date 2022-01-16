@@ -41,7 +41,6 @@ void renderTerrain(){
 	
 	fragColor0 = fragColor0 * shadow_factor;
 
-
 	// phong shading & brightFilterColor
 	vec3 Ia = vec3(0.1);
 	vec3 Id = vec3(1.2);

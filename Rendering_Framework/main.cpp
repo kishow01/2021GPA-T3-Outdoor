@@ -99,8 +99,9 @@ struct {
 	} final;
 } uniforms;
 
-glm::vec3 light_position = glm::vec3(0.2, 0.6, 0.5);
-// glm::vec3 light_position = glm::vec3(50, 300, 50);
+// glm::vec3 light_position = glm::vec3(0.2, 0.6, 0.5);
+// glm::vec3 light_position = glm::vec3(0, 600, 0);
+glm::vec3 light_Offset = glm::vec3(20, 60, 50);
 
 Shader *depthShader = nullptr;
 Shader *finalShader = nullptr;
@@ -161,6 +162,7 @@ glm::vec3 GRASS_1_KA = glm::vec3(1.000000, 1.000000, 1.000000);
 glm::vec3 GRASS_1_KD = glm::vec3(0.203922, 0.588235, 0.176471);
 glm::vec3 GRASS_1_KS = glm::vec3(0.000000, 0.000000, 0.000000);
 
+bool shadow_debug_option = false;
 
 int main(){
 	glfwInit();
@@ -262,8 +264,10 @@ void vsyncDisabled(GLFWwindow *window){
 
 
 		ImGui::SliderFloat("m_lookAtCenter.x", &m_lookAtCenter.x, 0.f, 1000.f);
-		ImGui::SliderFloat("m_lookAtCenter.x", &m_lookAtCenter.y, 0.f, 1000.f);
+		ImGui::SliderFloat("m_lookAtCenter.y", &m_lookAtCenter.y, 0.f, 1000.f);
 		ImGui::SliderFloat("m_lookAtCenter.z", &m_lookAtCenter.z, 0, 1000.f);
+
+		ImGui::Checkbox("shadow_debug_option", &shadow_debug_option);
 
 		ImGui::End();
 
@@ -373,11 +377,8 @@ void initializeGL(){
 	m_renderer = new SceneRenderer();
 	m_renderer->initialize(FRAME_WIDTH, FRAME_HEIGHT, depthShader->getProgramID());
 
-	// m_eye = glm::vec3(512.0, 10.0, 512.0);
-	// m_lookAtCenter = glm::vec3(512.0, 0.0, 500.0);
 	m_lookAtCenter = glm::vec3(512.0, 185.0, 500.0);
 	
-
 	// m_eye = glm::vec3(512.0, 220.0, 450);
 	m_eye0ffset = glm::vec3(0.0f, 35.0f, -50.0f);
 
@@ -553,8 +554,8 @@ void paintGL(){
 	glClearBufferfv(GL_DEPTH, 0, ones);
 
 	const float shadow_range = 100.0f;
-	glm::mat4 light_proj_matrix = glm::ortho(-shadow_range, shadow_range, -shadow_range, shadow_range, 0.1f, 5000.0f);
-	glm::mat4 light_view_matrix = glm::lookAt(light_position, m_lookAtCenter, glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::mat4 light_proj_matrix = glm::ortho(-shadow_range, shadow_range, -shadow_range, shadow_range, 0.0f, 1000.0f);
+	glm::mat4 light_view_matrix = glm::lookAt(m_lookAtCenter + light_Offset, m_lookAtCenter - light_Offset, glm::vec3(0.0f, 1.0f, 0.0f));
 	glm::mat4 light_vp_matrix = light_proj_matrix * light_view_matrix;
 
 	glm::mat4 scale_bias_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.5f)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.5f));
@@ -585,11 +586,12 @@ void paintGL(){
 	glEnable(GL_POLYGON_OFFSET_FILL);
 	glPolygonOffset(4.0f, 4.0f);
 
+	// m_renderer->renderLight(uniforms.light.mvp, light_vp_matrix);
+
 	glUniform1i(uniforms.light.type, 0);
 	plane->renderLight(uniforms.light.mvp, uniforms.light.tex, light_vp_matrix);
 	house1->renderLight(uniforms.light.mvp, uniforms.light.tex, light_vp_matrix);
 	house2->renderLight(uniforms.light.mvp, uniforms.light.tex, light_vp_matrix);
-	
 	/*
 	glUniform1i(uniforms.light.type, 1);
 	tree0_trunk->renderLight(uniforms.light.mvp, uniforms.light.tex, light_vp_matrix);
@@ -597,6 +599,7 @@ void paintGL(){
 	tree1_trunk->renderLight(uniforms.light.mvp, uniforms.light.tex, light_vp_matrix);
 	tree1_leaves->renderLight(uniforms.light.mvp, uniforms.light.tex, light_vp_matrix);
 	*/
+
 	/* 植物應該不需要畫陰影 */
 	// grass0->renderLight(uniforms.light.mvp, light_vp_matrix);
 	// grass1->renderLight(uniforms.light.mvp, light_vp_matrix);
@@ -660,8 +663,10 @@ void paintGL(){
 	glUniform1i(uniforms.final.bloom_id, bloom_option);
 	
 	glActiveTexture(GL_TEXTURE5);
-	glBindTexture(GL_TEXTURE_2D, S_FBODataTexture[0]);
-	// glBindTexture(GL_TEXTURE_2D, shadowBuffer.depthMap);
+	if(!shadow_debug_option) 
+		glBindTexture(GL_TEXTURE_2D, S_FBODataTexture[0]);
+	else
+		glBindTexture(GL_TEXTURE_2D, shadowBuffer.depthMap);
 	glUniform1i(uniforms.final.tex, 5);
 
 	glActiveTexture(GL_TEXTURE6);

@@ -35,5 +35,4 @@ void main() {
 		color = vec4(texture(tex, fs_in.texcoord).rgb, 1.0);
 	else if(bloom_option == 2)
 		color = vec4(gaussian_color.rgb, 1.0);
-	
 }
